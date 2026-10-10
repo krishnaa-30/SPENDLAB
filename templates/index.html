@@ -1,0 +1,217 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpendLab — Adaptive Expense Tracker</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="#"><span class="brand-icon">₹</span> SPENDLAB<span class="dot">.</span></a>
+    <p class="side-label">WORKSPACE</p>
+    <nav>
+      <a href="#dashboard" class="nav-link active">▦ &nbsp; Dashboard</a>
+      <a href="#transactions" class="nav-link">↕ &nbsp; Transactions</a>
+      <a href="#budgets" class="nav-link">◫ &nbsp; Budgets</a>
+      <a href="#goals" class="nav-link">◎ &nbsp; Savings goals</a>
+      <a href="#insights" class="nav-link">✳ &nbsp; Smart insights</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="status-dot"></div>
+      {% if demo %}<div><strong>DEMO MODE</strong><small>Data may reset at any time</small></div>
+      {% else %}<div><strong>LOCAL MODE</strong><small>Your data stays on this PC</small></div>{% endif %}
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div><span class="eyebrow">PERSONAL FINANCE / 001</span>
+        <h1>Money dashboard<span class="dot">.</span></h1>
+      </div>
+      <div class="top-actions">
+        <input type="month" id="monthPicker" aria-label="Select month">
+        <button class="btn btn-dark" id="exportBtn">↓ Export CSV</button>
+        <button class="btn btn-dark" id="importTopBtn">↑ Import CSV</button>
+        <button class="btn btn-green" id="addTopBtn">+ Add transaction</button>
+      </div>
+    </header>
+
+    <section id="dashboard">
+      <div class="welcome-strip">
+        <div><span class="eyebrow">YOUR MONEY, YOUR RULES</span>
+          <h2>Make every rupee count.</h2>
+          <p>Track it. Understand it. Adapt your budget.</p>
+        </div>
+        <div class="strip-mark">₹<span>↗</span></div>
+      </div>
+
+      <div class="section-heading"><h2>Monthly overview</h2><span class="tag">LIVE TOTALS</span></div>
+      <div class="summary-grid">
+        <article class="summary-card card-income"><span>↗ MONTHLY INCOME</span>
+          <strong id="incomeValue">₹0.00</strong><small>Money received</small></article>
+        <article class="summary-card card-expense"><span>↘ MONTHLY EXPENSES</span>
+          <strong id="expenseValue">₹0.00</strong><small>Money spent</small></article>
+        <article class="summary-card card-balance"><span>◈ NET BALANCE</span>
+          <strong id="balanceValue">₹0.00</strong><small>Income minus expenses</small></article>
+        <article class="summary-card card-savings"><span>◎ SAVINGS RATE</span>
+          <strong id="savingsValue">0%</strong><small>Balance / income</small></article>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="panel">
+          <div class="panel-heading"><div><span class="eyebrow">WHERE IT GOES</span><h3>Spending breakdown</h3></div><span class="tag">BY CATEGORY</span></div>
+          <div class="chart-wrap"><canvas id="categoryChart"></canvas><p class="empty-chart" id="categoryEmpty">No expenses this month yet.</p></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><span class="eyebrow">CASH FLOW</span><h3>Monthly trends</h3></div><span class="tag">6 MONTHS</span></div>
+          <div class="chart-wrap"><canvas id="trendChart"></canvas><p class="empty-chart" id="trendEmpty">Add transactions to see trends.</p></div>
+        </article>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="panel">
+          <div class="panel-heading"><div><span class="eyebrow">SPENDING LIMIT</span><h3>Budget health</h3></div><span class="tag">MONTHLY</span></div>
+          <div class="budget-hero"><span>Overall budget</span><strong id="budgetValue">Not set</strong></div>
+          <div class="progress-track"><div id="budgetProgress" class="progress-fill"></div></div>
+          <div class="progress-labels"><span id="budgetSpent">₹0 spent</span><span id="budgetUsage">Set a budget to track usage</span></div>
+          <div id="categoryBudgetHealth" class="health-list"></div>
+          <p class="hint">Set an overall budget below to track total spending.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><span class="eyebrow">YOUR TARGETS</span><h3>Savings progress</h3></div><a href="#goals">Manage →</a></div>
+          <div id="goalPreview" class="goal-list"><p class="muted">No goals yet. Create your first savings goal.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="transactions" class="content-section">
+      <div class="section-heading"><div><span class="eyebrow">INCOME + EXPENSES</span><h2>Transactions</h2></div>
+        <div class="top-actions">
+          <button class="btn btn-dark" id="importBtn">↑ Import CSV</button>
+          <button class="btn btn-green" id="addTransactionBtn">+ New entry</button>
+        </div></div>
+      <article class="panel">
+        <div class="filters">
+          <input id="searchInput" type="search" placeholder="Search description or category…">
+          <select id="typeFilter"><option value="">All types</option><option value="income">Income</option><option value="expense">Expense</option></select>
+          <select id="categoryFilter"><option value="">All categories</option></select>
+        </div>
+        <div class="table-scroll"><table><thead><tr><th>Date</th><th>Transaction</th><th>Category</th><th>Type</th><th>Amount</th><th>Actions</th></tr></thead>
+          <tbody id="transactionRows"></tbody></table></div>
+        <p class="table-foot" id="transactionCount">Loading transactions…</p>
+      </article>
+    </section>
+
+    <section id="budgets" class="content-section">
+      <div class="section-heading"><div><span class="eyebrow">PLAN BEFORE YOU SPEND</span><h2>Budget settings</h2></div></div>
+      <div class="dashboard-grid">
+        <article class="panel">
+          <h3>Set a budget</h3>
+          <form id="budgetForm" class="form-grid">
+            <label>Month<input type="month" name="month" id="budgetMonth" required></label>
+            <label>Budget type<select name="category" id="budgetCategory"><option value="*">Overall monthly budget</option></select></label>
+            <label class="full">Limit (₹)<input name="amount" type="number" min="0.01" step="0.01" required placeholder="e.g. 15000"></label>
+            <button class="btn btn-green full" type="submit">Save budget ↗</button>
+          </form>
+        </article>
+        <article class="panel"><h3>Configured budgets</h3><div id="budgetList" class="manage-list"></div></article>
+      </div>
+    </section>
+
+    <section id="goals" class="content-section">
+      <div class="section-heading"><div><span class="eyebrow">SAVE WITH PURPOSE</span><h2>Savings goals</h2></div></div>
+      <div class="dashboard-grid">
+        <article class="panel"><h3>Create a savings goal</h3>
+          <form id="goalForm" class="form-grid">
+            <label class="full">Goal name<input name="name" required maxlength="100" placeholder="e.g. New laptop"></label>
+            <label>Target (₹)<input name="target" type="number" min="0.01" step="0.01" required></label>
+            <label>Already saved (₹)<input name="saved" type="number" min="0" step="0.01" value="0" required></label>
+            <label class="full">Deadline (optional)<input name="deadline" type="date"></label>
+            <button class="btn btn-green full" type="submit">Create goal +</button>
+          </form>
+        </article>
+        <article class="panel"><h3>All goals</h3><div id="goalList" class="manage-list"></div></article>
+      </div>
+    </section>
+
+    <section id="insights" class="content-section">
+      <div class="section-heading"><div><span class="eyebrow">ADAPTIVE ENGINE · LAST MONTH AS BASELINE</span><h2>Adaptive insights</h2></div><span class="tag">RUNS LOCALLY · NO API</span></div>
+
+      <article class="panel advisor" id="advisorPanel">
+        <div class="advisor-head">
+          <div class="score-badge" id="scoreBadge"><strong id="advisorScore">–</strong><span>/100</span></div>
+          <div>
+            <span class="eyebrow">YOUR SPENDLAB ADVISOR · <span id="advisorLabel">…</span></span>
+            <h3 id="advisorHeadline">Analysing your spending…</h3>
+          </div>
+        </div>
+        <ul id="advisorInsights" class="advisor-list"></ul>
+        <form id="askForm" class="ask-form">
+          <input id="askInput" maxlength="300" autocomplete="off" placeholder="Ask your advisor, e.g. “Will I stay within budget?”" aria-label="Ask the advisor">
+          <button class="btn btn-dark" type="submit">Ask ↗</button>
+        </form>
+        <div class="chips">
+          <button type="button" class="chip" data-q="Will I stay within budget this month?">Forecast</button>
+          <button type="button" class="chip" data-q="What are my biggest expenses?">Biggest expenses</button>
+          <button type="button" class="chip" data-q="Compare with last month">vs last month</button>
+          <button type="button" class="chip" data-q="Where can I cut spending?">Where to cut</button>
+          <button type="button" class="chip" data-q="How are my savings?">Savings</button>
+        </div>
+        <div id="askAnswer" class="ask-answer" role="status" aria-live="polite" hidden></div>
+      </article>
+
+      <div class="insight-intro">The advisor compares this month with <strong>last month</strong>, forecasts where each category will finish, and suggests budgets. Accepting a suggestion updates the category budget; rejecting it keeps your budget unchanged.</div>
+      <div id="insightList" class="insight-grid"></div>
+    </section>
+
+    <footer>SPENDLAB © <span id="year"></span> · BUILT FOR SMARTER MONEY HABITS.</footer>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="transactionModal" hidden>
+  <div class="modal panel">
+    <div class="panel-heading"><div><span class="eyebrow">RECORD YOUR MONEY</span><h2 id="transactionModalTitle">New transaction</h2></div>
+      <button type="button" class="icon-btn" id="closeModal" aria-label="Close">✕</button></div>
+    <form id="transactionForm" class="form-grid">
+      <input type="hidden" name="id">
+      <label>Type<select name="type" id="transactionType" required><option value="expense">Expense</option><option value="income">Income</option></select></label>
+      <label>Amount (₹)<input name="amount" type="number" min="0.01" max="1000000000" step="0.01" required placeholder="0.00"></label>
+      <label>Category<select name="category" id="transactionCategory" required></select></label>
+      <label>Date<input name="date" type="date" required></label>
+      <label class="full">Description<input name="description" maxlength="200" placeholder="What was this for?"></label>
+      <button class="btn btn-green full" type="submit">Save transaction ↗</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="importModal" hidden>
+  <div class="modal panel">
+    <div class="panel-heading"><div><span class="eyebrow">BRING IN YOUR DATA</span><h2>Import transactions</h2></div>
+      <button type="button" class="icon-btn" id="closeImport" aria-label="Close">✕</button></div>
+    <form id="importForm" class="form-grid">
+      <label class="full">CSV file<input type="file" id="importFile" name="file" accept=".csv,text/csv" required></label>
+      <label class="full">If the file has no Type column
+        <select id="importMode" name="mode">
+          <option value="auto">Use the sign: − is expense, + is income</option>
+          <option value="expense">Treat every row as an expense</option>
+          <option value="income">Treat every row as income</option>
+        </select>
+      </label>
+      <p class="hint full">Needs a <strong>Date</strong> and an <strong>Amount</strong> column (or Debit / Credit columns). Category, description and type are optional; missing categories are guessed from the description. Rows already in SpendLab are skipped, so importing twice is safe. <a href="/api/import/template">Download a sample CSV</a>.</p>
+      <button class="btn btn-green full" type="submit" id="importSubmit">Import transactions ↑</button>
+    </form>
+    <div id="importResult" class="import-result" role="status" aria-live="polite" hidden></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+window.EXPENSE_CATEGORIES = {{ categories|tojson }};
+</script>
+<script src="/app.js"></script>
+</body>
+</html>
